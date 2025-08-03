@@ -1,0 +1,33 @@
+{
+  "data-policy": {
+    "header": "小马友善项目数据政策",
+    "sections": {
+      "1": "我们收集匿名的回复数据，以研究人们如何评价小马的友善程度。",
+      "2": "不存储或共享任何个人身份信息。"
+    },
+    "actions": {
+      "accept": "我接受",
+      "dont-accept": "我不接受"
+    }
+  },
+  "survey": {
+    "header": "这匹小马有多友善？",
+    "subheader": "在初次介绍时，例如 “赎回前”。",
+    "options": {
+      "very-nice": "非常友善",
+      "somewhat-nice": "有点友善",
+      "neither": "既不友善也不刻薄",
+      "somewhat-mean": "有点刻薄",
+      "very-mean": "非常刻薄"
+    },
+    "actions": {
+      "not-sure": "我不确定",
+      "submit": "提交"
+    }
+  },
+  "toast": {
+    "skipped": "你跳过了那匹小马！",
+    "submission": "已收到提交！",
+    "completed": "你完成了所有的小马，你太棒了！"
+  }
+}

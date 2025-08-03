@@ -1,0 +1,33 @@
+{
+  "data-policy": {
+    "header": "The Pony Niceness Project's Data Policy",
+    "sections": {
+      "1": "We collect anonymized response data to study how people rate pony niceness.",
+      "2": "No personally identifying information is stored or shared."
+    },
+    "actions": {
+      "accept": "I accept",
+      "dont-accept": "I do not accept"
+    }
+  },
+  "survey": {
+    "header": "How nice is this pony?",
+    "subheader": "Upon initial introduction, e.g. \"pre-redemption\".",
+    "options": {
+      "very-nice": "Very nice",
+      "somewhat-nice": "Somewhat nice",
+      "neither": "Neither nice nor mean",
+      "somewhat-mean": "Somewhat mean",
+      "very-mean": "Very mean"
+    },
+    "actions": {
+      "not-sure": "I'm not sure",
+      "submit": "Submit"
+    }
+  },
+  "toast": {
+    "skipped": "You skipped that pony!",
+    "submission": "Submission received!",
+    "completed": "You completed all the ponies, you are awesome!"
+  }
+}

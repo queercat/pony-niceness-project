@@ -1,0 +1,33 @@
+{
+  "data-policy": {
+    "header": "ポニー親切プロジェクトのデータポリシー",
+    "sections": {
+      "1": "ポニーの親切度を評価する際の回答データ（匿名化）を収集します。",
+      "2": "個人を特定できる情報は保存・共有されません。"
+    },
+    "actions": {
+      "accept": "同意します",
+      "dont-accept": "同意しません"
+    }
+  },
+  "survey": {
+    "header": "このポニーはどれくらい親切ですか？",
+    "subheader": "最初の紹介時、例：「赦しの前（pre-redemption）」。",
+    "options": {
+      "very-nice": "とても親切",
+      "somewhat-nice": "やや親切",
+      "neither": "親切でも意地悪でもない",
+      "somewhat-mean": "やや意地悪",
+      "very-mean": "とても意地悪"
+    },
+    "actions": {
+      "not-sure": "よくわかりません",
+      "submit": "送信"
+    }
+  },
+  "toast": {
+    "skipped": "そのポニーをスキップしました！",
+    "submission": "送信を受け取りました！",
+    "completed": "すべてのポニーを完了しました、あなたは素晴らしい！"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "data-policy": {
+    "header": "Política de Dados do Projeto Gentileza dos Pôneis",
+    "sections": {
+      "1": "Coletamos dados de resposta anonimizados para estudar como as pessoas avaliam a bondade dos pôneis.",
+      "2": "Nenhuma informação pessoal identificável é armazenada ou compartilhada."
+    },
+    "actions": {
+      "accept": "Eu aceito",
+      "dont-accept": "Eu não aceito"
+    }
+  },
+  "survey": {
+    "header": "Quão gentil é este pônei?",
+    "subheader": "Na apresentação inicial, por exemplo “pré-redenção”.",
+    "options": {
+      "very-nice": "Muito gentil",
+      "somewhat-nice": "Um pouco gentil",
+      "neither": "Nem gentil nem rude",
+      "somewhat-mean": "Um pouco rude",
+      "very-mean": "Muito rude"
+    },
+    "actions": {
+      "not-sure": "Não tenho certeza",
+      "submit": "Enviar"
+    }
+  },
+  "toast": {
+    "skipped": "Você pulou esse pônei!",
+    "submission": "Envio recebido!",
+    "completed": "Você completou todos os pôneis, você é incrível!"
+  }
+}

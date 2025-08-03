@@ -1,0 +1,33 @@
+{
+  "data-policy": {
+    "header": "Politique de données du Projet Amabilité des Poneys",
+    "sections": {
+      "1": "Nous recueillons des données de réponses anonymisées pour étudier comment les gens évaluent la gentillesse des poneys.",
+      "2": "Aucune information personnellement identifiable n’est stockée ni partagée."
+    },
+    "actions": {
+      "accept": "J’accepte",
+      "dont-accept": "Je n’accepte pas"
+    }
+  },
+  "survey": {
+    "header": "À quel point ce poney est-il gentil ?",
+    "subheader": "Lors de la première présentation, ex. « avant la rédemption ».",
+    "options": {
+      "very-nice": "Très gentil",
+      "somewhat-nice": "Assez gentil",
+      "neither": "Ni gentil ni méchant",
+      "somewhat-mean": "Assez méchant",
+      "very-mean": "Très méchant"
+    },
+    "actions": {
+      "not-sure": "Je ne suis pas sûr(e)",
+      "submit": "Soumettre"
+    }
+  },
+  "toast": {
+    "skipped": "Vous avez ignoré ce poney !",
+    "submission": "Soumission reçue !",
+    "completed": "Vous avez terminé tous les poneys, vous êtes génial(e) !"
+  }
+}

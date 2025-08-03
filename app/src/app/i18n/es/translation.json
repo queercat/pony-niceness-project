@@ -1,0 +1,33 @@
+{
+  "data-policy": {
+    "header": "Política de datos del Proyecto de Amabilidad de Ponis",
+    "sections": {
+      "1": "Recopilamos datos de respuestas anonimizadas para estudiar cómo la gente califica la amabilidad de los ponis.",
+      "2": "No se almacena ni comparte información de identificación personal."
+    },
+    "actions": {
+      "accept": "Acepto",
+      "dont-accept": "No acepto"
+    }
+  },
+  "survey": {
+    "header": "¿Qué tan amable es este poni?",
+    "subheader": "Al hacer la presentación inicial, p. ej. “antes de la redención”.",
+    "options": {
+      "very-nice": "Muy amable",
+      "somewhat-nice": "Algo amable",
+      "neither": "Ni amable ni antipático",
+      "somewhat-mean": "Algo antipático",
+      "very-mean": "Muy antipático"
+    },
+    "actions": {
+      "not-sure": "No estoy seguro/a",
+      "submit": "Enviar"
+    }
+  },
+  "toast": {
+    "skipped": "¡Te saltaste ese poni!",
+    "submission": "¡Respuesta recibida!",
+    "completed": "¡Completaste todos los ponis, eres increíble!"
+  }
+}

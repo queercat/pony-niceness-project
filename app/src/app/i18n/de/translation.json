@@ -1,0 +1,33 @@
+{
+  "data-policy": {
+    "header": "Datenschutzrichtlinie des Pony-Freundlichkeitsprojekts",
+    "sections": {
+      "1": "Wir sammeln anonymisierte Antworten, um zu analysieren, wie Menschen die Freundlichkeit von Ponys bewerten.",
+      "2": "Es werden keine persönlich identifizierbaren Informationen gespeichert oder weitergegeben."
+    },
+    "actions": {
+      "accept": "Ich akzeptiere",
+      "dont-accept": "Ich lehne ab"
+    }
+  },
+  "survey": {
+    "header": "Wie freundlich ist dieses Pony?",
+    "subheader": "Bei der ersten Vorstellung, z. B. „vor der Läuterung“.",
+    "options": {
+      "very-nice": "Sehr freundlich",
+      "somewhat-nice": "Etwas freundlich",
+      "neither": "Weder freundlich noch gemein",
+      "somewhat-mean": "Etwas gemein",
+      "very-mean": "Sehr gemein"
+    },
+    "actions": {
+      "not-sure": "Ich bin mir nicht sicher",
+      "submit": "Absenden"
+    }
+  },
+  "toast": {
+    "skipped": "Du hast dieses Pony übersprungen!",
+    "submission": "Einsendung erhalten!",
+    "completed": "Du hast alle Ponys abgeschlossen, du bist großartig!"
+  }
+}

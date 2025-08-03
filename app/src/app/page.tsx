@@ -22,13 +22,15 @@ import {
   ThemeProvider,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import { useHasAcceptedDataPolicy } from "./hooks/useHasAcceptedDataPolicy";
 import { useSubmitDataPolicy } from "./hooks/useSubmitDataPolicy";
 import { usePony } from "./hooks/usePony";
 import { useSubmitPonyRating } from "./hooks/useSubmitPonyRating";
 import ConfettiExplosion from "react-confetti-explosion";
+import { useTranslation } from "react-i18next";
+import "./i18n/i18n.config"
 
 const theme = createTheme({
   colorSchemes: {
@@ -41,6 +43,8 @@ const theme = createTheme({
 });
 
 export default function Home() {
+  const { t } = useTranslation()
+
   const [niceness, setNiceness] = useState<number | null>(null);
 
   const {
@@ -66,7 +70,7 @@ export default function Home() {
 
   useEffect(() => {
     if (allDone) {
-      setToast("You completed all the ponies!");
+      setToast(t("toast.completed"));
     }
   }, [allDone]);
 
@@ -88,7 +92,7 @@ export default function Home() {
       await submitRating(pony.id, niceness);
 
       setNiceness(null);
-      setToast("Submission received!");
+      setToast(t("toast.submission"));
       setImageLoaded(false);
       fetchPony();
     } catch (error) {
@@ -106,7 +110,7 @@ export default function Home() {
       await submitRating(pony.id, -1);
 
       setNiceness(null);
-      setToast("You skipped that pony!");
+      setToast(t("toat.skipped"));
       setImageLoaded(false);
       fetchPony();
     } catch (error) {
@@ -124,16 +128,15 @@ export default function Home() {
         >
           <Dialog open={!hasAccepted && !isDataPolicyLoading}>
             <DialogTitle className="text-center">
-              The Pony Niceness Project's Data Policy
+              {t("data-policy.header")}
             </DialogTitle>
             <DialogContent className="flex flex-col gap-4">
               <Paper className="p-4 flex flex-col gap-2" variant="outlined">
                 <Typography variant="body1">
-                  We collect anonymized response data to study how people rate
-                  pony niceness.
+                  {t("data-policy.sections.1")}
                 </Typography>
                 <Typography variant="body1">
-                  No personally identifying information is stored or shared.
+                  {t("data-policy.sections.2")}
                 </Typography>
               </Paper>
               <Box sx={{ display: "flex", gap: 2 }}>
@@ -147,7 +150,7 @@ export default function Home() {
                   sx={{ textTransform: "none", fontWeight: "bold" }}
                   loading={isSubmitting || isSubmittingPonyRating}
                 >
-                  I do not accept
+                  {t("data-policy.actions.dont-accept")}
                 </Button>
                 <Button
                   onClick={() => {
@@ -158,7 +161,7 @@ export default function Home() {
                   sx={{ textTransform: "none", fontWeight: "bold" }}
                   loading={isSubmitting || isSubmittingPonyRating}
                 >
-                  I accept
+                  {t("data-policy.actions.accept")}
                 </Button>
               </Box>
             </DialogContent>
@@ -179,7 +182,7 @@ export default function Home() {
                   sx={{ pb: 0 }}
                   title={
                     <Typography variant="h5" fontWeight={600}>
-                      How nice is this pony?
+                      {t("survey.header")}
                     </Typography>
                   }
                   subheader={
@@ -188,7 +191,7 @@ export default function Home() {
                       fontWeight={600}
                       color="textSecondary"
                     >
-                      Upon initial introduction, e.g. "pre-redemption".
+                      {t("survey.subheader")}
                     </Typography>
                   }
                 />
@@ -239,27 +242,27 @@ export default function Home() {
                     <FormControlLabel
                       value={4}
                       control={<Radio />}
-                      label="Very nice"
+                      label={t("survey.options.very-nice")}
                     />
                     <FormControlLabel
                       value={3}
                       control={<Radio />}
-                      label="Somewhat nice"
+                      label={t("survey.options.somewhat-nice")}
                     />
                     <FormControlLabel
                       value={2}
                       control={<Radio />}
-                      label="Neither nice nor mean"
+                      label={t("survey.options.neither")}
                     />
                     <FormControlLabel
                       value={1}
                       control={<Radio />}
-                      label="Somewhat mean"
+                      label={t("survey.options.somewhat-mean")}
                     />
                     <FormControlLabel
                       value={0}
                       control={<Radio />}
-                      label="Very mean"
+                      label={t("survey.options.very-mean")}
                     />
                   </RadioGroup>
                   <FormGroup sx={{ display: "flex", gap: 1, pt: 2 }}>
@@ -270,7 +273,7 @@ export default function Home() {
                       onClick={handleSkip}
                       sx={{ textTransform: "none", fontWeight: "bold" }}
                     >
-                      I'm not sure
+                      {t("survey.actions.not-sure")}
                     </Button>
                     <Button
                       variant="contained"
@@ -281,7 +284,7 @@ export default function Home() {
                         niceness === null || isDataPolicyLoading || !hasAccepted
                       }
                     >
-                      Submit
+                      {t("survey.actions.submit")}
                     </Button>
                   </FormGroup>
                 </FormControl>
