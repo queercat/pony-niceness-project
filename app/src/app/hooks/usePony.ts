@@ -6,12 +6,18 @@ export const usePony = () => {
 
   const [pony, setPony] = useState<Pick<Pony, "derpiUrl" | "id" | "name">>();
   const [isLoading, setIsLoading] = useState(true);
+  const [allDone, setAllDone] = useState(false)
 
   const fetchPony = async () => {
     setIsLoading(true);
     await new Promise((r) => setTimeout(r, 500))
     try {
       const response = await fetch(api);
+      if (response.status === 404) {
+        setAllDone(true);
+        return
+      }
+
       if (!response.ok) {
         throw new Error("Failed to fetch pony");
       }
@@ -29,5 +35,5 @@ export const usePony = () => {
   }, [])
 
 
-  return { pony, isLoading, fetchPony };
+  return { pony, isLoading, fetchPony, allDone };
 };

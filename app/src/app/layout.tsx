@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { createTheme, InitColorSchemeScript } from "@mui/material";
 
 export const metadata: Metadata = {
   title: "Pony Niceness Project",
@@ -14,6 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <InitColorSchemeScript attribute="data" />
         {children}
       </body>
     </html>
