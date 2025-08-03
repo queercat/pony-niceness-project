@@ -7,9 +7,56 @@
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model DataPolicy {
+  id        Int      @id @default(autoincrement())
+  sessionId String   @unique
+  accepted  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Alignment {
+  GOOD
+  NEUTRAL
+  BAD
+}
+
+enum Rating {
+  VERY_NICE
+  SOMEWHAT_NICE
+  NEITHER_NICE_NOR_MEAN
+  SOMEWHAT_MEAN
+  VERY_MEAN
+  SKIPPED
+}
+
+model Pony {
+  id            Int          @id @default(autoincrement())
+  name          String       @unique
+  derpiUrl      String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  primaryColor  String
+  baseAlignment Alignment    @default(NEUTRAL)
+  ratings       PonyRating[]
+}
+
+model PonyRating {
+  id        Int      @id @default(autoincrement())
+  ponyId    Int
+  pony      Pony     @relation(fields: [ponyId], references: [id])
+  sessionId String
+  rating    Rating
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([ponyId, sessionId])
 }
