@@ -1,10 +1,13 @@
 ---
-title: "Sandbox"
+title: "Color-Niceness Statistical Analysis"
 format: html
 editor: visual
 ---
 
 ```{r}
+
+# Color-Niceness Statistical Analysis
+
 # Set CRAN mirror to avoid render errors
 options(repos = c(CRAN = "https://cran.rstudio.com/"))
 
@@ -27,7 +30,7 @@ safe_library("ICC")
 safe_library("car")
 safe_library("effectsize")
 safe_library("broom")
-safe_library("lmerTest")  # For p-values in lmer
+safe_library("lmerTest")
 
 # Suppress startup messages
 suppressPackageStartupMessages({
@@ -35,26 +38,99 @@ suppressPackageStartupMessages({
   library(ordinal)
   library(lme4)
 })
+
+# ============================================================================
+# CONFIGURATION SETTINGS
+# ============================================================================
+
+# Data loading settings
+USE_DATABASE <- TRUE  # Set to TRUE to load from database, FALSE to use CSV
+CSV_FILENAME <- "pony_ratings_data.csv"
+
+# Database connection settings (only used if USE_DATABASE = TRUE)
+DB_CONFIG <- list(
+  dbname = "postgres",
+  host = "localhost", 
+  port = 5432,
+  user = "postgres",
+  password = "password"
+)
+
+cat("Configuration:\n")
+cat("- Use database:", USE_DATABASE, "\n")
+cat("- CSV filename:", CSV_FILENAME, "\n")
 ```
 
 ```{r}
-# Connect to postgres
-connection <- dbConnect(RPostgres::Postgres(), 
-                       dbname="postgres", 
-                       host="localhost", 
-                       port=5432, 
-                       user="postgres", 
-                       password="password")
+# Function to load data from database
+load_from_database <- function() {
+  cat("Loading data from PostgreSQL database...\n")
+  
+  tryCatch({
+    # Connect to postgres
+    connection <- dbConnect(RPostgres::Postgres(), 
+                           dbname = DB_CONFIG$dbname,
+                           host = DB_CONFIG$host,
+                           port = DB_CONFIG$port, 
+                           user = DB_CONFIG$user,
+                           password = DB_CONFIG$password)
+    
+    # Get the data
+    query <- 'SELECT "name", "primaryColor", "sessionId", "rating" 
+              FROM "PonyRating" 
+              INNER JOIN "Pony" on "Pony"."id" = "PonyRating"."ponyId"'
+    
+    res <- dbSendQuery(connection, query)
+    df_raw <- dbFetch(res)
+    
+    # Clean up connections
+    dbClearResult(res)
+    dbDisconnect(connection)
+    
+    cat("Successfully loaded", nrow(df_raw), "rows from database\n")
+    
+    # Save to CSV for future use
+    write.csv(df_raw, CSV_FILENAME, row.names = FALSE)
+    cat("Data saved to", CSV_FILENAME, "for future use\n")
+    
+    return(df_raw)
+    
+  }, error = function(e) {
+    cat("Error connecting to database:", e$message, "\n")
+    cat("Falling back to CSV file...\n")
+    return(NULL)
+  })
+}
 
-# Get the data
-res <- dbSendQuery(connection, 
-  'SELECT "name", "primaryColor", "sessionId", "rating" 
-   FROM "PonyRating" 
-   INNER JOIN "Pony" on "Pony"."id" = "PonyRating"."ponyId"')
+# Function to load data from CSV
+load_from_csv <- function() {
+  if (!file.exists(CSV_FILENAME)) {
+    stop("CSV file '", CSV_FILENAME, "' not found. Please set USE_DATABASE = TRUE to load from database first.")
+  }
+  
+  cat("Loading data from CSV file:", CSV_FILENAME, "\n")
+  df_raw <- read.csv(CSV_FILENAME, stringsAsFactors = FALSE)
+  cat("Successfully loaded", nrow(df_raw), "rows from CSV\n")
+  return(df_raw)
+}
 
-df_raw <- dbFetch(res)
-dbClearResult(res)
-dbDisconnect(connection)
+# Main data loading logic
+if (USE_DATABASE) {
+  df_raw <- load_from_database()
+  
+  # If database loading failed, try CSV
+  if (is.null(df_raw)) {
+    df_raw <- load_from_csv()
+  }
+} else {
+  df_raw <- load_from_csv()
+}
+
+# Display basic info about loaded data
+cat("\nData structure:\n")
+str(df_raw)
+cat("\nFirst few rows:\n")
+head(df_raw)
 
 # Convert hex to luminance function
 hex_to_luminance <- function(hex_color) {
@@ -64,7 +140,7 @@ hex_to_luminance <- function(hex_color) {
   g <- strtoi(substr(hex_color, 3, 4), 16L) / 255
   b <- strtoi(substr(hex_color, 5, 6), 16L) / 255
   
-  # Gamma correction
+  # Gamma correction for better perceptual accuracy
   gamma_correct <- function(channel) {
     ifelse(channel <= 0.04045, 
            channel / 12.92, 
@@ -75,7 +151,7 @@ hex_to_luminance <- function(hex_color) {
   g_linear <- gamma_correct(g)
   b_linear <- gamma_correct(b)
   
-  # ITU-R BT.709 luminance
+  # ITU-R BT.709 luminance weights
   0.2126 * r_linear + 0.7152 * g_linear + 0.0722 * b_linear
 }
 
@@ -107,13 +183,19 @@ df <- df_raw %>%
   )
 
 # Display data summary
-cat("Data Summary:\n")
+cat("Prepared Data Summary:\n")
 cat("Total observations:", nrow(df), "\n")
 cat("Unique sessions:", n_distinct(df$sessionId), "\n")
-cat("Observations per session:", round(nrow(df) / n_distinct(df$sessionId), 1), "\n\n")
+cat("Observations per session:", round(nrow(df) / n_distinct(df$sessionId), 1), "\n")
+cat("Unique characters:", n_distinct(df$name), "\n\n")
 
 # Show rating distribution
-df %>% count(rating) %>% arrange(rating)
+rating_dist <- df %>% count(rating) %>% arrange(rating)
+cat("Rating distribution:\n")
+print(rating_dist)
+
+# Show luminance range
+cat("\nLuminance range:", round(min(df$luminance), 3), "to", round(max(df$luminance), 3), "\n")
 ```
 
 ```{r}
