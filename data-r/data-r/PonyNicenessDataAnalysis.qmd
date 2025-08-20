@@ -1,0 +1,386 @@
+---
+title: "Sandbox"
+format: html
+editor: visual
+---
+
+```{r}
+# Set CRAN mirror to avoid render errors
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+
+# Function to safely install and load packages
+safe_library <- function(pkg) {
+  if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+    install.packages(pkg, dependencies = TRUE, quiet = TRUE)
+    library(pkg, character.only = TRUE)
+  }
+}
+
+# Load required packages
+safe_library("DBI")
+safe_library("RPostgres") 
+safe_library("tidyverse")
+safe_library("ordinal")
+safe_library("lme4")
+safe_library("performance")
+safe_library("ICC")
+safe_library("car")
+safe_library("effectsize")
+safe_library("broom")
+safe_library("lmerTest")  # For p-values in lmer
+
+# Suppress startup messages
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(ordinal)
+  library(lme4)
+})
+```
+
+```{r}
+# Connect to postgres
+connection <- dbConnect(RPostgres::Postgres(), 
+                       dbname="postgres", 
+                       host="localhost", 
+                       port=5432, 
+                       user="postgres", 
+                       password="password")
+
+# Get the data
+res <- dbSendQuery(connection, 
+  'SELECT "name", "primaryColor", "sessionId", "rating" 
+   FROM "PonyRating" 
+   INNER JOIN "Pony" on "Pony"."id" = "PonyRating"."ponyId"')
+
+df_raw <- dbFetch(res)
+dbClearResult(res)
+dbDisconnect(connection)
+
+# Convert hex to luminance function
+hex_to_luminance <- function(hex_color) {
+  hex_color <- gsub("#", "", hex_color)
+  
+  r <- strtoi(substr(hex_color, 1, 2), 16L) / 255
+  g <- strtoi(substr(hex_color, 3, 4), 16L) / 255
+  b <- strtoi(substr(hex_color, 5, 6), 16L) / 255
+  
+  # Gamma correction
+  gamma_correct <- function(channel) {
+    ifelse(channel <= 0.04045, 
+           channel / 12.92, 
+           ((channel + 0.055) / 1.055)^2.4)
+  }
+  
+  r_linear <- gamma_correct(r)
+  g_linear <- gamma_correct(g)
+  b_linear <- gamma_correct(b)
+  
+  # ITU-R BT.709 luminance
+  0.2126 * r_linear + 0.7152 * g_linear + 0.0722 * b_linear
+}
+
+# Prepare data for analysis
+df <- df_raw %>%
+  filter(rating != "SKIPPED") %>%
+  mutate(
+    # Convert to ordered factor
+    rating_ordered = factor(rating, 
+                           levels = c("VERY_MEAN", "SOMEWHAT_MEAN", 
+                                    "NEITHER_NICE_NOR_MEAN", 
+                                    "SOMEWHAT_NICE", "VERY_NICE"),
+                           ordered = TRUE),
+    
+    # Convert to numeric for some analyses
+    rating_numeric = case_when(
+      rating == "VERY_MEAN" ~ 1,
+      rating == "SOMEWHAT_MEAN" ~ 2,
+      rating == "NEITHER_NICE_NOR_MEAN" ~ 3,
+      rating == "SOMEWHAT_NICE" ~ 4,
+      rating == "VERY_NICE" ~ 5
+    ),
+    
+    # Calculate luminance
+    luminance = hex_to_luminance(primaryColor),
+    
+    # Make sessionId a factor
+    sessionId = as.factor(sessionId)
+  )
+
+# Display data summary
+cat("Data Summary:\n")
+cat("Total observations:", nrow(df), "\n")
+cat("Unique sessions:", n_distinct(df$sessionId), "\n")
+cat("Observations per session:", round(nrow(df) / n_distinct(df$sessionId), 1), "\n\n")
+
+# Show rating distribution
+df %>% count(rating) %>% arrange(rating)
+```
+
+```{r}
+# Basic distributions
+p1 <- df %>%
+  ggplot(aes(x = luminance)) +
+  geom_histogram(bins = 20, fill = "skyblue", alpha = 0.7) +
+  labs(title = "Distribution of Luminance Values",
+       x = "Luminance", y = "Count") +
+  theme_minimal()
+
+p2 <- df %>%
+  ggplot(aes(x = rating_ordered)) +
+  geom_bar(fill = "lightcoral", alpha = 0.7) +
+  labs(title = "Distribution of Niceness Ratings",
+       x = "Rating", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p1)
+print(p2)
+
+# Main relationship plot
+df %>%
+  ggplot(aes(x = luminance, y = rating_numeric)) +
+  geom_jitter(aes(color = sessionId), alpha = 0.6, height = 0.1, width = 0) +
+  geom_smooth(method = "lm", se = TRUE, color = "red", linewidth = 1.2) +
+  scale_y_continuous(breaks = 1:5, 
+                     labels = c("Very Mean", "Somewhat Mean", "Neither", 
+                               "Somewhat Nice", "Very Nice")) +
+  labs(title = "Luminance vs Niceness Ratings",
+       subtitle = "Each color represents a different session",
+       x = "Luminance (0 = black, 1 = white)", 
+       y = "Niceness Rating") +
+  theme_minimal() +
+  theme(legend.position = "none")  # Too many sessions for legend
+
+# Box plots by luminance quartiles
+df %>%
+  mutate(luminance_quartile = ntile(luminance, 4),
+         quartile_label = paste("Q", luminance_quartile, sep = "")) %>%
+  ggplot(aes(x = quartile_label, y = rating_numeric)) +
+  geom_boxplot(fill = "lightgreen", alpha = 0.7) +
+  geom_jitter(alpha = 0.3, width = 0.2) +
+  labs(title = "Niceness Ratings by Luminance Quartiles",
+       x = "Luminance Quartile (Q1=Darkest, Q4=Lightest)",
+       y = "Niceness Rating") +
+  theme_minimal()
+```
+
+```{r}
+# Check how much clustering exists
+icc_result <- ICCest(sessionId, rating_numeric, data = df)
+cat("Intraclass Correlation (ICC):", round(icc_result$ICC, 3), "\n")
+cat("This means", round(icc_result$ICC * 100, 1), "% of variance is between sessions\n\n")
+
+# Session-level summary
+session_summary <- df %>%
+  group_by(sessionId) %>%
+  summarise(
+    n_ratings = n(),
+    mean_rating = mean(rating_numeric),
+    mean_luminance = mean(luminance),
+    .groups = 'drop'
+  )
+
+cat("Observations per session:\n")
+summary(session_summary$n_ratings)
+```
+
+```{r}
+### 1. Mixed-Effects Ordinal Regression (Primary Analysis)
+# Fit mixed-effects ordinal regression
+cat("Fitting mixed-effects ordinal regression...\n")
+model_ordinal <- clmm(rating_ordered ~ luminance + (1|sessionId), data = df)
+
+# Display results
+summary(model_ordinal)
+
+# Extract key statistics - CORRECTED METHOD
+coef_luminance <- coef(model_ordinal)["luminance"]
+odds_ratio <- exp(coef_luminance)
+ci_coef <- confint(model_ordinal)["luminance", ]
+ci_or <- exp(ci_coef)
+
+cat("\n=== KEY RESULTS ===\n")
+cat("Luminance coefficient:", round(coef_luminance, 4), "\n")
+cat("Odds Ratio:", round(odds_ratio, 3), "\n")
+cat("95% CI for OR: [", round(ci_or[1], 3), ", ", round(ci_or[2], 3), "]\n", sep = "")
+
+# Test if random effects are needed
+model_no_random <- clm(rating_ordered ~ luminance, data = df)
+anova_result <- anova(model_ordinal, model_no_random)
+print(anova_result)
+
+if (anova_result$`Pr(>Chisq)`[2] < 0.05) {
+  cat("Random effects ARE needed (p < 0.05)\n")
+} else {
+  cat("Random effects may not be needed (p >= 0.05)\n")
+}
+```
+
+```{r}
+# Fit mixed-effects linear regression (treating ordinal as continuous)
+cat("Fitting mixed-effects linear regression...\n")
+model_linear <- lmer(rating_numeric ~ luminance + (1|sessionId), data = df)
+
+# Display results
+summary(model_linear)
+
+# Get confidence intervals
+ci_linear <- confint(model_linear)["luminance", ]
+
+cat("\n=== LINEAR MODEL RESULTS ===\n")
+cat("Luminance coefficient:", round(fixef(model_linear)["luminance"], 4), "\n")
+cat("95% CI: [", round(ci_linear[1], 4), ", ", round(ci_linear[2], 4), "]\n", sep = "")
+cat("Interpretation: Each unit increase in luminance increases rating by", 
+    round(fixef(model_linear)["luminance"], 3), "points\n")
+
+# Model fit
+cat("R-squared (marginal):", round(performance::r2(model_linear)$R2_marginal, 3), "\n")
+cat("R-squared (conditional):", round(performance::r2(model_linear)$R2_conditional, 3), "\n")
+```
+
+```{r}
+# Spearman correlation (non-parametric)
+spearman_result <- cor.test(df$luminance, df$rating_numeric, method = "spearman")
+
+# Pearson correlation (parametric)
+pearson_result <- cor.test(df$luminance, df$rating_numeric, method = "pearson")
+
+cat("=== CORRELATION RESULTS ===\n")
+cat("Spearman ρ:", round(spearman_result$estimate, 3), 
+    ", p =", format.pval(spearman_result$p.value, digits = 3), "\n")
+cat("Pearson r:", round(pearson_result$estimate, 3), 
+    ", p =", format.pval(pearson_result$p.value, digits = 3), "\n")
+
+# Effect size interpretation
+spearman_rho <- abs(spearman_result$estimate)
+effect_size <- case_when(
+  spearman_rho < 0.1 ~ "negligible",
+  spearman_rho < 0.3 ~ "small", 
+  spearman_rho < 0.5 ~ "medium",
+  TRUE ~ "large"
+)
+cat("Effect size:", effect_size, "\n")
+```
+
+```{r}
+# Check assumptions for linear model
+# Residuals vs fitted
+plot(model_linear, main = "Residuals vs Fitted (Linear Model)")
+
+# Q-Q plot for normality
+qqnorm(resid(model_linear), main = "Q-Q Plot of Residuals")
+qqline(resid(model_linear))
+
+# Test normality of residuals
+if (nrow(df) <= 5000) {
+  shapiro_result <- shapiro.test(resid(model_linear))
+  cat("Shapiro-Wilk test for normality: p =", format.pval(shapiro_result$p.value), "\n")
+} else {
+  cat("Sample too large for Shapiro-Wilk test\n")
+}
+
+# Test proportional odds assumption for ordinal model
+cat("\nTesting proportional odds assumption...\n")
+tryCatch({
+  prop_odds_test <- nominal_test(model_ordinal)
+  print(prop_odds_test)
+  if (prop_odds_test$`Pr(>Chisq)` < 0.05) {
+    cat("WARNING: Proportional odds assumption may be violated (p < 0.05)\n")
+  } else {
+    cat("Proportional odds assumption appears satisfied (p >= 0.05)\n")
+  }
+}, error = function(e) {
+  cat("Could not test proportional odds assumption\n")
+})
+```
+
+```{r}
+# Get coefficient names and values more safely
+ordinal_summary <- summary(model_ordinal)
+linear_summary <- summary(model_linear)
+
+# Print the structures to see what's available
+cat("=== ORDINAL MODEL COEFFICIENTS ===\n")
+print(ordinal_summary$coefficients)
+
+cat("\n=== LINEAR MODEL COEFFICIENTS ===\n") 
+print(linear_summary$coefficients)
+
+# For ordinal model (this should work)
+ordinal_coef_table <- ordinal_summary$coefficients
+ordinal_lum_row <- grep("luminance", rownames(ordinal_coef_table))
+ordinal_p <- ordinal_coef_table[ordinal_lum_row, "Pr(>|z|)"]
+ordinal_coef <- ordinal_coef_table[ordinal_lum_row, "Estimate"]
+
+# For linear model - get coefficient but calculate p-value differently
+linear_coef_table <- linear_summary$coefficients
+linear_lum_row <- grep("luminance", rownames(linear_coef_table))
+linear_coef <- linear_coef_table[linear_lum_row, "Estimate"]
+
+# Calculate p-value for linear model using t-value
+if ("t value" %in% colnames(linear_coef_table)) {
+  linear_t <- linear_coef_table[linear_lum_row, "t value"]
+  # Use 2-tailed test with large df approximation
+  linear_p <- 2 * (1 - pnorm(abs(linear_t)))
+} else {
+  # Alternative: use lmerTest package for p-values
+  library(lmerTest)
+  model_linear_p <- lmer(rating_numeric ~ luminance + (1|sessionId), data = df)
+  linear_summary_p <- summary(model_linear_p)
+  linear_p <- linear_summary_p$coefficients["luminance", "Pr(>|t|)"]
+}
+
+# Calculate odds ratio
+odds_ratio <- exp(ordinal_coef)
+
+# Create results summary
+cat("\n=== RESULTS SUMMARY ===\n")
+cat("Mixed-Effects Ordinal Regression:\n")
+cat("  Coefficient:", round(ordinal_coef, 4), "\n")
+cat("  Odds Ratio:", round(odds_ratio, 3), "\n")
+cat("  P-value:", format.pval(ordinal_p), "\n")
+cat("  Interpretation: Each unit increase in luminance multiplies odds of higher rating by", round(odds_ratio, 2), "\n\n")
+
+cat("Mixed-Effects Linear Regression:\n")
+cat("  Coefficient:", round(linear_coef, 4), "\n") 
+cat("  P-value:", format.pval(linear_p), "\n")
+cat("  Interpretation: Each unit increase in luminance increases rating by", round(linear_coef, 3), "points\n\n")
+
+cat("Spearman Correlation:\n")
+cat("  Correlation:", round(spearman_result$estimate, 3), "\n")
+cat("  P-value:", format.pval(spearman_result$p.value), "\n\n")
+
+cat("Pearson Correlation:\n")
+cat("  Correlation:", round(pearson_result$estimate, 3), "\n")
+cat("  P-value:", format.pval(pearson_result$p.value), "\n\n")
+
+# Overall conclusion
+all_p_values <- c(ordinal_p, linear_p, spearman_result$p.value, pearson_result$p.value)
+significant_count <- sum(all_p_values < 0.05, na.rm = TRUE)
+
+cat("=== OVERALL CONCLUSION ===\n")
+cat("Significant results:", significant_count, "out of 4 tests\n")
+
+if (significant_count >= 3) {
+  cat("STRONG EVIDENCE: Your hypothesis is well supported\n")
+} else if (significant_count >= 2) {
+  cat("MODERATE EVIDENCE: Your hypothesis has some support\n") 
+} else {
+  cat("WEAK EVIDENCE: Your hypothesis is not well supported\n")
+}
+
+# Effect size interpretation
+spearman_rho <- abs(spearman_result$estimate)
+if (spearman_rho >= 0.5) {
+  effect_size <- "large"
+} else if (spearman_rho >= 0.3) {
+  effect_size <- "medium"
+} else if (spearman_rho >= 0.1) {
+  effect_size <- "small"
+} else {
+  effect_size <- "negligible"
+}
+
+cat("Effect size (Spearman):", effect_size, "\n")
+cat("ICC =", round(icc_result$ICC, 3), "- clustering accounts for", round(icc_result$ICC * 100, 1), "% of variance\n")
+```

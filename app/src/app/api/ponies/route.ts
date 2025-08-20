@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const count = ratingsFromThisIp.length;
   const totalPonies = await prisma.pony.count();
 
-  if (count >= totalPonies) {
+  if (count >= totalPonies || true) {
     return NextResponse.json(
       { message: "You have rated all available ponies." },
       { status: 404 }
